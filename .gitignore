@@ -13,3 +13,12 @@ venv/
 
 # mac
 .DS_Store
+
+#clickhouse
+data/
+store/
+metadata/
+access/
+uuid
+preprocessed_configs/
+status

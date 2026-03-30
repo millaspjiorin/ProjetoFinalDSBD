@@ -1,8 +1,8 @@
-
-from .config import API_KEY_NAME,API_KEY_VALUE,BASE_URL
+from .config import API_KEY_NAME, API_KEY_VALUE, BASE_URL
 from .client import APIClient
 from .fetcher import APIFetcher
-from ingestion.params import PACOTES_ORGAOS, ANOS
+from .writer import ClickHouseWriter
+from .params import PACOTES_ORGAOS, ANOS
 
 
 def main():
@@ -14,14 +14,16 @@ def main():
 
     fetcher = APIFetcher(client)
 
-    all_results = []
+    writer = ClickHouseWriter()
+
+    total_insertados = 0
 
     for pacote, orgaos in PACOTES_ORGAOS.items():
-        print(f"\n📦 Procesando pacote: {pacote}")
+        print(f"Processando pacote: {pacote}")
 
         for ano in ANOS:
             for orgao in orgaos:
-                print(f"➡️ Ano {ano} | Órgão {orgao}")
+                print(f"Ano {ano} | Órgão {orgao}")
 
                 data = fetcher.fetch_all(
                     endpoint="/api-de-dados/despesas/por-orgao",
@@ -31,10 +33,19 @@ def main():
                     }
                 )
 
-                all_results.extend(data)
-                print(data)
+                if not data:
+                    print("Sem dados")
+                    continue
 
-    return all_results
+                writer.insert_bronze(
+                    table="despesas_bronze",
+                    data=data,
+                    pacote=pacote
+                )
+
+                total_insertados += len(data)
+
+    print(f"Total de registros inseridos: {total_insertados}")
 
 
 if __name__ == "__main__":

@@ -20,19 +20,14 @@ class APIFetcher:
 
         while True:
             params = {**base_params, page_param: page}
-
             data = self.client.get(endpoint, params)
-
-            # Adaptable según API
             records = data if isinstance(data, list) else data.get("data", [])
 
             if not records:
                 break
 
             results.extend(records)
-
             page += 1
-
             if max_pages and page > max_pages:
                 break
 
