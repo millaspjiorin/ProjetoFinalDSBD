@@ -1,5 +1,5 @@
 import clickhouse_connect
-from typing import List, Dict
+from typing import List, Dict, Any
 from .config import (
     CLICKHOUSE_HOST,
     CLICKHOUSE_PORT,
@@ -25,35 +25,27 @@ class ClickHouseWriter:
     def insert_bronze(
         self,
         table: str,
-        data: List[Dict],
-        pacote: str
-    ):
+        data: List[Dict[str, Any]],
+        columns: List[str],
+        pacote: str,
+        endpoint: str,
+        ingestion_id: str,
+        source: str = "Portal da Transparencia",
+    ) -> None:
         if not data:
             return
 
-        columns = [
-            "ano",
-            "orgao",
-            "codigoOrgao",
-            "orgaoSuperior",
-            "codigoOrgaoSuperior",
-            "empenhado",
-            "liquidado",
-            "pago",
-            "pacote"
-        ]
+        extra_fields = {
+            "pacote": pacote,
+            "__endpoint": endpoint,
+            "__ingestion_id": ingestion_id,
+            "__source": source
+        }
 
         rows = [
             [
-                record.get("ano"),
-                record.get("orgao"),
-                record.get("codigoOrgao"),
-                record.get("orgaoSuperior"),
-                record.get("codigoOrgaoSuperior"),
-                record.get("empenhado"),
-                record.get("liquidado"),
-                record.get("pago"),
-                pacote
+                extra_fields[col] if col in extra_fields else record.get(col)
+                for col in columns
             ]
             for record in data
         ]
@@ -64,7 +56,7 @@ class ClickHouseWriter:
             column_names=columns
         )
 
-        print(f"Inseridos {len(rows)} registros")
+        print(f"Inseridos {len(rows)} registros em {table}")
         
 
     
