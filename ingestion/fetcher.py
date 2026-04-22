@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional
 import time
-from .client import APIClient
-from .params import REQUESTS_PER_MINUTE,SAFETY_FACTOR
+from ingestion.client import APIClient
+from ingestion.params import REQUESTS_PER_MINUTE,SAFETY_FACTOR
 
 
 class APIFetcher:

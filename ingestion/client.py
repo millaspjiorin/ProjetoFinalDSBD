@@ -1,6 +1,6 @@
 import requests
 from typing import Dict, Any, Optional
-from .config import BASE_URL, TIMEOUT, API_KEY_NAME, API_KEY_VALUE
+from ingestion.config import BASE_URL, TIMEOUT, API_KEY_NAME, API_KEY_VALUE
 
 
 class APIClient:

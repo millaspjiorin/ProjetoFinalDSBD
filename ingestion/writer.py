@@ -1,32 +1,23 @@
-import clickhouse_connect
 from typing import List, Dict, Any
-from .config import (
-    CLICKHOUSE_HOST,
-    CLICKHOUSE_PORT,
-    CLICKHOUSE_USER,
-    CLICKHOUSE_PASSWORD,
-    CLICKHOUSE_DATABASE,
-)
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import lit
+from ingestion.config import DATA_LAKE_BASE_PATH
 
 
-
-class ClickHouseWriter:
-    def __init__(
-        self
-    ):
-        self.client = clickhouse_connect.get_client(
-            host=CLICKHOUSE_HOST,
-            port=CLICKHOUSE_PORT,
-            username=CLICKHOUSE_USER,
-            password=CLICKHOUSE_PASSWORD,
-            database=CLICKHOUSE_DATABASE
+class SparkParquetWriter:
+    def __init__(self, base_path: str = DATA_LAKE_BASE_PATH) -> None:
+        self.base_path = base_path
+        self.spark = (
+            SparkSession.builder
+            .appName("portal-transparencia-ingestion")
+            .master("local[*]")
+            .getOrCreate()
         )
 
-    def insert_bronze(
+    def write_bronze(
         self,
-        table: str,
+        dataset: str,
         data: List[Dict[str, Any]],
-        columns: List[str],
         pacote: str,
         endpoint: str,
         ingestion_id: str,
@@ -35,29 +26,20 @@ class ClickHouseWriter:
         if not data:
             return
 
-        extra_fields = {
-            "pacote": pacote,
-            "__endpoint": endpoint,
-            "__ingestion_id": ingestion_id,
-            "__source": source
-        }
+        df = self.spark.createDataFrame(data)
 
-        rows = [
-            [
-                extra_fields[col] if col in extra_fields else record.get(col)
-                for col in columns
-            ]
-            for record in data
-        ]
+        df = df.withColumn("pacote", lit(pacote))
+        df = df.withColumn("__endpoint", lit(endpoint))
+        df = df.withColumn("__ingestion_id", lit(ingestion_id))
+        df = df.withColumn("__source", lit(source))
 
-        self.client.insert(
-            table,
-            rows,
-            column_names=columns
-        )
+        output_path = f"{self.base_path}/bronze/{dataset}"
 
-        print(f"Inseridos {len(rows)} registros em {table}")
-        
+        writer = df.write.mode("append")
+        writer = writer.partitionBy("ano")
+        writer.parquet(output_path)
 
-    
+        print(f"Inseridos {df.count()} registros em {output_path}", flush=True)
 
+    def stop(self) -> None:
+        self.spark.stop()

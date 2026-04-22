@@ -1,15 +1,17 @@
 import uuid
 from typing import List, Dict
-from .config import API_KEY_NAME, API_KEY_VALUE, BASE_URL
-from .client import APIClient
-from .fetcher import APIFetcher
-from .writer import ClickHouseWriter
-from .params import PACOTES_ORGAOS, ANOS, PACOTES_FUNCOES
-from .schemas import COLS_DESPESAS_FUNCIONAL_PROGRAMATICA, COLS_DESPESAS_POR_ORGAO
+
+from ingestion.config import API_KEY_NAME, API_KEY_VALUE, BASE_URL
+from ingestion.client import APIClient
+from ingestion.fetcher import APIFetcher
+from ingestion.writer import SparkParquetWriter
+from ingestion.params import PACOTES_ORGAOS, ANOS, PACOTES_FUNCOES
 
 def main() -> None:
     ingestion_id = str(uuid.uuid4())
-    
+
+    print(f"Iniciando ingestao {ingestion_id}", flush=True)
+
     client = APIClient(
         base_url=BASE_URL,
         api_key_name=API_KEY_NAME,
@@ -17,63 +19,57 @@ def main() -> None:
     )
 
     fetcher = APIFetcher(client)
+    writer = SparkParquetWriter()
 
-    writer = ClickHouseWriter()
+    try:
+        total = run_despesas_pipeline(
+            fetcher=fetcher,
+            writer=writer,
+            anos=ANOS,
+            endpoint="/api-de-dados/despesas/por-orgao",
+            param_name="orgaoSuperior",
+            pacotes=PACOTES_ORGAOS,
+            dataset="despesas_por_orgao",
+            ingestion_id=ingestion_id
+        )
 
-    # ================================
-    # Despesas por orgao
-    # ================================
-    total = run_despesas_pipeline(
-        fetcher=fetcher,
-        writer=writer,
-        anos=ANOS,
-        endpoint="/api-de-dados/despesas/por-orgao",
-        param_name="orgaoSuperior",
-        pacotes=PACOTES_ORGAOS,
-        table="bronze.despesas_por_orgao",
-        columns=COLS_DESPESAS_POR_ORGAO,
-        ingestion_id=ingestion_id
-    )
-    
-    print(f"Total de registros inseridos despesas por orgao: {total}")
+        print(f"Total de registros escritos despesas por orgao: {total}", flush=True)
 
-    # ================================
-    # Despesas por funcao
-    # ================================
-    total = run_despesas_pipeline(
-        fetcher=fetcher,
-        writer=writer,
-        anos=ANOS,
-        endpoint="/api-de-dados/despesas/por-funcional-programatica",
-        param_name="funcao",
-        pacotes=PACOTES_FUNCOES,
-        table="bronze.despesas_funcional_programatica",
-        columns=COLS_DESPESAS_FUNCIONAL_PROGRAMATICA,
-        ingestion_id=ingestion_id
-    )
+        total = run_despesas_pipeline(
+            fetcher=fetcher,
+            writer=writer,
+            anos=ANOS,
+            endpoint="/api-de-dados/despesas/por-funcional-programatica",
+            param_name="funcao",
+            pacotes=PACOTES_FUNCOES,
+            dataset="despesas_funcional_programatica",
+            ingestion_id=ingestion_id
+        )
 
-    print(f"Total de registros inseridos despesas funcional programatica: {total}")
+        print(f"Total de registros escritos despesas funcional programatica: {total}", flush=True)
+
+    finally:
+        writer.stop()
 
 
 def run_despesas_pipeline(
     fetcher: APIFetcher,
-    writer: ClickHouseWriter,
+    writer: SparkParquetWriter,
     anos: List[int],
     endpoint: str,
     param_name: str,
     pacotes: Dict[str, List[str]],
-    table: str,
-    columns: List[str],
+    dataset: str,
     ingestion_id: str
-):
+) -> int:
     total = 0
 
     for pacote, valores in pacotes.items():
-        print(f"\n Pacote: {pacote}")
+        print(f"\nPacote: {pacote}", flush=True)
 
         for ano in anos:
             for valor in valores:
-                print(f"Ano {ano} | {param_name} {valor}")
+                print(f"Ano {ano} | {param_name} {valor}", flush=True)
 
                 data = fetcher.fetch_all(
                     endpoint=endpoint,
@@ -86,10 +82,9 @@ def run_despesas_pipeline(
                 if not data:
                     continue
 
-                writer.insert_bronze(
-                    table=table,
+                writer.write_bronze(
+                    dataset=dataset,
                     data=data,
-                    columns=columns,
                     pacote=pacote,
                     endpoint=endpoint,
                     ingestion_id=ingestion_id
@@ -98,8 +93,6 @@ def run_despesas_pipeline(
                 total += len(data)
 
     return total
-
-
 
 
 if __name__ == "__main__":
