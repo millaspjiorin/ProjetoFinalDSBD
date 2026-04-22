@@ -11,12 +11,25 @@ class SparkParquetWriter:
             SparkSession.builder
             .appName("portal-transparencia-ingestion")
             .master("local[*]")
+            .config(
+                "spark.sql.extensions",
+                "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
+            )
+            .config("spark.sql.catalog.local", "org.apache.iceberg.spark.SparkCatalog")
+            .config("spark.sql.catalog.local.type", "hadoop")
+            .config("spark.sql.catalog.local.warehouse", "/data/warehouse")
             .getOrCreate()
         )
+        for layer in ["bronze", "silver", "gold"]:
+            self.spark.sql(f"CREATE NAMESPACE IF NOT EXISTS local.{layer}")
+        
+    def table_exists(self, database: str, table_name: str) -> bool:
+        tables = self.spark.sql(f"SHOW TABLES IN local.{database}").collect()
+        return any(row.tableName == table_name for row in tables)
 
     def write_bronze(
         self,
-        dataset: str,
+        table_name: str,
         data: List[Dict[str, Any]],
         pacote: str,
         endpoint: str,
@@ -33,13 +46,20 @@ class SparkParquetWriter:
         df = df.withColumn("__ingestion_id", lit(ingestion_id))
         df = df.withColumn("__source", lit(source))
 
-        output_path = f"{self.base_path}/bronze/{dataset}"
+        full_table_name = f"local.bronze.{table_name}"
 
-        writer = df.write.mode("append")
-        writer = writer.partitionBy("ano")
-        writer.parquet(output_path)
+        if self.table_exists("bronze", table_name):
+            df.writeTo(full_table_name).append()
+        else:
+            (
+                df.writeTo(full_table_name)
+                .using("iceberg")
+                .partitionedBy("ano")
+                .tableProperty("format-version", "2")
+                .create()
+            )
 
-        print(f"Inseridos {df.count()} registros em {output_path}", flush=True)
+        print(f"Inseridos {df.count()} registros em {full_table_name}", flush=True)
 
     def stop(self) -> None:
         self.spark.stop()

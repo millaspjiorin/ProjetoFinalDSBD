@@ -29,7 +29,7 @@ def main() -> None:
             endpoint="/api-de-dados/despesas/por-orgao",
             param_name="orgaoSuperior",
             pacotes=PACOTES_ORGAOS,
-            dataset="despesas_por_orgao",
+            table_name="despesas_por_orgao",
             ingestion_id=ingestion_id
         )
 
@@ -42,7 +42,7 @@ def main() -> None:
             endpoint="/api-de-dados/despesas/por-funcional-programatica",
             param_name="funcao",
             pacotes=PACOTES_FUNCOES,
-            dataset="despesas_funcional_programatica",
+            table_name="despesas_funcional_programatica",
             ingestion_id=ingestion_id
         )
 
@@ -59,7 +59,7 @@ def run_despesas_pipeline(
     endpoint: str,
     param_name: str,
     pacotes: Dict[str, List[str]],
-    dataset: str,
+    table_name: str,
     ingestion_id: str
 ) -> int:
     total = 0
@@ -83,7 +83,7 @@ def run_despesas_pipeline(
                     continue
 
                 writer.write_bronze(
-                    dataset=dataset,
+                    table_name=table_name,
                     data=data,
                     pacote=pacote,
                     endpoint=endpoint,
