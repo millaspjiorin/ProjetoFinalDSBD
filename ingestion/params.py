@@ -3,7 +3,7 @@
 # ================================
 
 START_YEAR = 2014
-END_YEAR = 2025
+END_YEAR = 2026
 
 ANOS = list(range(START_YEAR, END_YEAR + 1))
 

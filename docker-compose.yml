@@ -1,0 +1,26 @@
+services:
+  ingestion:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: projeto-pos-ingestion:latest
+    env_file:
+      - .env
+    volumes:
+      - ./data:/data
+    working_dir: /app
+
+  duckdb-init:
+    image: duckdb/duckdb:latest
+    depends_on:
+      ingestion:
+        condition: service_completed_successfully
+    volumes:
+      - ./data:/data
+      - ./duckdb:/db
+      - ./sql:/sql
+    entrypoint: ["/duckdb"]
+    command:
+      - /db/lakehouse.duckdb
+      - -f
+      - /sql/duckdb/create_bronze.sql

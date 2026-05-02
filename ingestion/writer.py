@@ -20,8 +20,7 @@ class SparkParquetWriter:
             .config("spark.sql.catalog.local.warehouse", "/data/warehouse")
             .getOrCreate()
         )
-        for layer in ["bronze", "silver", "gold"]:
-            self.spark.sql(f"CREATE NAMESPACE IF NOT EXISTS local.{layer}")
+        self.spark.sql(f"CREATE NAMESPACE IF NOT EXISTS local.bronze")
         
     def table_exists(self, database: str, table_name: str) -> bool:
         tables = self.spark.sql(f"SHOW TABLES IN local.{database}").collect()
