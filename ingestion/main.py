@@ -1,5 +1,6 @@
 import uuid
 from typing import List, Dict
+from datetime import datetime, timezone
 
 from ingestion.config import API_KEY_NAME, API_KEY_VALUE, BASE_URL
 from ingestion.client import APIClient
@@ -9,6 +10,7 @@ from ingestion.params import PACOTES_ORGAOS, ANOS, PACOTES_FUNCOES
 
 def main() -> None:
     ingestion_id = str(uuid.uuid4())
+    ingestion_time = datetime.now(timezone.utc).isoformat()
 
     print(f"Iniciando ingestao {ingestion_id}", flush=True)
 
@@ -30,7 +32,8 @@ def main() -> None:
             param_name="orgaoSuperior",
             pacotes=PACOTES_ORGAOS,
             table_name="despesas_por_orgao",
-            ingestion_id=ingestion_id
+            ingestion_id=ingestion_id,
+            ingestion_time=ingestion_time
         )
 
         print(f"Total de registros escritos despesas por orgao: {total}", flush=True)
@@ -43,7 +46,8 @@ def main() -> None:
             param_name="funcao",
             pacotes=PACOTES_FUNCOES,
             table_name="despesas_funcional_programatica",
-            ingestion_id=ingestion_id
+            ingestion_id=ingestion_id,
+            ingestion_time=ingestion_time
         )
 
         print(f"Total de registros escritos despesas funcional programatica: {total}", flush=True)
@@ -60,7 +64,8 @@ def run_despesas_pipeline(
     param_name: str,
     pacotes: Dict[str, List[str]],
     table_name: str,
-    ingestion_id: str
+    ingestion_id: str,
+    ingestion_time: str
 ) -> int:
     total = 0
 
@@ -87,7 +92,8 @@ def run_despesas_pipeline(
                     data=data,
                     pacote=pacote,
                     endpoint=endpoint,
-                    ingestion_id=ingestion_id
+                    ingestion_id=ingestion_id,
+                    ingestion_time=ingestion_time
                 )
 
                 total += len(data)

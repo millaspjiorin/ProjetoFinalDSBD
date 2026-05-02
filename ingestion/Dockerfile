@@ -1,12 +1,14 @@
 FROM apache/spark-py:latest
 
 USER root
+
 WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-COPY requirements.txt .
+COPY ingestion/requirements.txt ./requirements.txt
+
 RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
 RUN mkdir -p /opt/spark/jars && \
@@ -15,4 +17,4 @@ RUN mkdir -p /opt/spark/jars && \
 
 COPY . .
 
-CMD ["/opt/spark/bin/spark-submit", "/app/run.py"]
+CMD ["/opt/spark/bin/spark-submit", "/app/ingestion/main.py"]

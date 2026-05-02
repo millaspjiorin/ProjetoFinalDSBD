@@ -33,6 +33,7 @@ class SparkParquetWriter:
         pacote: str,
         endpoint: str,
         ingestion_id: str,
+        ingestion_time: str,
         source: str = "Portal da Transparencia",
     ) -> None:
         if not data:
@@ -43,6 +44,7 @@ class SparkParquetWriter:
         df = df.withColumn("pacote", lit(pacote))
         df = df.withColumn("__endpoint", lit(endpoint))
         df = df.withColumn("__ingestion_id", lit(ingestion_id))
+        df = df.withColumn("__ingestion_time", lit(ingestion_time))
         df = df.withColumn("__source", lit(source))
 
         full_table_name = f"local.bronze.{table_name}"

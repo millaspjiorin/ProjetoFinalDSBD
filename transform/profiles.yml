@@ -1,0 +1,7 @@
+projetofinaldsbd_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: /db/lakehouse.duckdb
+      threads: 4

@@ -2,7 +2,7 @@ services:
   ingestion:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ingestion/Dockerfile
     image: projeto-pos-ingestion:latest
     env_file:
       - .env
@@ -24,3 +24,20 @@ services:
       - /db/lakehouse.duckdb
       - -f
       - /sql/duckdb/create_bronze.sql
+
+  dbt:
+    build:
+      context: ./transform
+      dockerfile: Dockerfile
+    image: projeto-pos-dbt:latest
+    depends_on:
+      duckdb-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./transform:/app
+      - ./data:/data
+      - ./duckdb:/db
+    working_dir: /app
+    environment:
+      DBT_PROFILES_DIR: /app
+    command: ["dbt", "run"]
