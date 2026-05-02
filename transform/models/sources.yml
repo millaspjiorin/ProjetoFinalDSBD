@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: bronze
+    database: bronze
+    tables:
+      - name: despesas_por_orgao
+      - name: despesas_funcional_programatica

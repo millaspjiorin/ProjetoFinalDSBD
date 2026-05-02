@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: despesas_por_orgao
+    description: "Dados tratados de despesas por órgão (camada prata)."
+
+    columns:
+      - name: ano
+        description: "Ano de referência da despesa."
+        tests:
+          - not_null
+
+      - name: codigoOrgao
+        description: "Código do órgão."
+        tests:
+          - not_null
+
+      - name: codigoOrgaoSuperior
+        description: "Código do órgão superior."
+        tests:
+          - not_null
+
+      - name: pacote
+        description: "Grupo analítico do órgão."
+        tests:
+          - not_null

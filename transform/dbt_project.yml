@@ -1,0 +1,23 @@
+name: 'projetofinaldsbd_dbt'
+version: '1.0.0'
+config-version: 2
+
+profile: 'projetofinaldsbd_dbt'
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  projetofinaldsbd_dbt:
+    prata:
+      +materialized: table
+      +schema: prata
+
+    ouro:
+      +materialized: table
+      +schema: ouro

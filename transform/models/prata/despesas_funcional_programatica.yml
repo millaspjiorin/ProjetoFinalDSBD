@@ -1,0 +1,36 @@
+version: 2
+
+models:
+  - name: despesas_funcional_programatica
+    description: "Dados tratados de despesas por funcional-programática (camada prata)."
+
+    columns:
+      - name: ano
+        description: "Ano de referência da despesa."
+        tests:
+          - not_null
+
+      - name: codigoFuncao
+        description: "Código da função orçamentária."
+        tests:
+          - not_null
+
+      - name: codigoSubfuncao
+        description: "Código da subfunção."
+        tests:
+          - not_null
+
+      - name: codigoPrograma
+        description: "Código do programa."
+        tests:
+          - not_null
+
+      - name: codigoAcao
+        description: "Código da ação."
+        tests:
+          - not_null
+
+      - name: pacote
+        description: "Grupo analítico da função."
+        tests:
+          - not_null
