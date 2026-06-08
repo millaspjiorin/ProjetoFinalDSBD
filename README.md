@@ -61,7 +61,7 @@ As consultas retornam dados agregados, sendo o volume dependente dos filtros apl
 
 # Estratégia de Análise
 
-Para apoiar a análise, os dados são organizados em grupos analíticos.
+Para apoiar a análise, os dados são organizados em grupos analíticos definidos na etapa de ingestão, com base nos códigos de órgão e de função orçamentária.
 
 ## Análise por órgãos
 
@@ -75,9 +75,10 @@ Os órgãos do Poder Executivo foram agrupados conforme o tipo de impacto potenc
 
 As funções orçamentárias foram agrupadas com base na literatura sobre ciclos políticos de gastos:
 
-- gastos com maior visibilidade ao eleitor: saúde, educação e assistência social;
-- investimentos públicos: transporte, urbanismo e agricultura;
-- gastos estruturais: defesa, segurança pública e administração.
+- políticas sociais: saúde, educação e assistência social;
+- infraestrutura: transporte, urbanismo e agricultura;
+- segurança do estado: defesa e segurança pública;
+- administração do governo: administração e trabalho.
 
 ---
 
@@ -100,8 +101,6 @@ O pipeline segue uma arquitetura em camadas, inspirada no modelo medalhão:
     Camada Prata materializada como tabela no DuckDB
             ↓
     Camada Ouro materializada como tabela no DuckDB
-            ↓
-    Feature Engineering
             ↓
     Modelagem Preditiva
             ↓
@@ -173,74 +172,62 @@ Essa etapa realiza chamadas HTTP para os endpoints definidos, controla a pagina�
 
 Os dados coletados são encaminhados para gravação da camada bronze em Apache Iceberg, com armazenamento físico em arquivos Parquet.
 
+Durante a ingestão, cada registro recebe uma coluna `pacote` com a classificação analítica correspondente, atribuída com base no código de órgão ou de função orçamentária conforme dicionários definidos no módulo de configuração.
+
 ---
 
 # Camadas Analíticas
 
 ## Camada Bronze
 
-A camada bronze armazena os dados brutos provenientes da API.
-
-Essa camada é gravada com PySpark em Apache Iceberg, utilizando arquivos Parquet como formato físico.
+A camada bronze armazena os dados brutos provenientes da API, sem nenhuma transformação. Os campos monetários são mantidos como VARCHAR com formatação brasileira, e os metadados de ingestão são adicionados pelo pipeline.
 
 Tabelas:
 
     bronze.despesas_por_orgao
     bronze.despesas_funcional_programatica
 
-## Metadados de Ingestão
-
-Cada registro contém metadados gerados pelo pipeline:
-
-| Coluna | Descrição |
-|---|---|
-| `__ingestion_time` | Timestamp da ingestão |
-| `__source` | Origem dos dados |
-| `__endpoint` | Endpoint utilizado |
-| `__ingestion_id` | Identificador da execução |
-
 ---
 
 ## Camada Prata
 
-A camada prata contém dados tratados, padronizados e enriquecidos.
+A camada prata contém dados tratados, padronizados e enriquecidos. As duas tabelas são tratadas de forma independente, sem junção entre si, pois os endpoints retornam dados com granularidades distintas e sem chave comum.
 
-Essa camada é construída com dbt e materializada como tabela no DuckDB.
+Tratamentos aplicados:
 
-Principais tratamentos previstos:
+- conversão de tipos: `ano` para integer, campos monetários de VARCHAR para double com tratamento de formatação brasileira e valores negativos, `__ingestion_time` para timestamp;
+- padronização de campos textuais com `trim` em códigos e nomes;
+- cálculo de flags eleitorais com base no calendário brasileiro: anos com resto 2 na divisão por 4 correspondem a eleições gerais, anos divisíveis por 4 correspondem a eleições municipais;
+- preservação dos metadados de ingestão.
 
-- conversão de tipos;
-- padronização de valores;
-- tratamento de campos monetários;
-- tratamento de campos temporais;
-- padronização de nomes, códigos de órgãos e funções.
+Tabelas:
 
-Tabelas iniciais:
-
-    prata.despesas_por_orgao
-    prata.despesas_funcional_programatica
+    prata.stg_despesas_por_orgao
+    prata.stg_despesas_funcional_programatica
 
 ---
 
 ## Camada Ouro
 
-A camada ouro é destinada ao consumo analítico e à modelagem preditiva.
+A camada ouro é destinada ao consumo analítico e à modelagem preditiva. As duas tabelas permanecem independentes, refletindo as duas perspectivas de análise dos gastos públicos.
 
-Essa camada consolida os dados tratados em estruturas voltadas para análise, criação de métricas e construção de features.
+Transformações aplicadas em ambas as tabelas:
 
-Tabelas previstas:
+- agregação dos valores por ano, entidade e pacote;
+- cálculo do contexto eleitoral ampliado: flag de ano pré-eleitoral via `lag` de `fl_ano_eleitoral` e flag de ano pós-eleitoral via `lead`;
+- identificação do governo em exercício no ano, com tratamento explícito do ano de 2016 como período de transição em razão do impeachment;
+- cálculo de features de série temporal: `valor_pago_lag_1`, `valor_pago_lag_2`, `variacao_yoy_abs`, `variacao_yoy_pct` e `rolling_mean_3`.
 
-    ouro.gastos_por_orgao
-    ouro.gastos_por_funcao
-    ouro.gastos_por_grupo
+Tabelas:
 
-Essa camada será utilizada para:
+    ouro.despesas_por_orgao
+    ouro.despesas_por_funcao
 
-- construção de métricas analíticas;
-- análise temporal de gastos;
-- análise de ciclos eleitorais;
-- criação de features;
-- geração de datasets para modelos preditivos.
+### Decisões de modelagem
+
+As duas tabelas ouro não são unidas por JOIN. A ausência de chave comum entre as perspectivas de órgão e de função orçamentária reflete a estrutura real dos dados retornados pela API, que agrega cada dimensão de forma independente. A comparação entre as duas perspectivas é realizada por meio do campo `pacote`, utilizado como dimensão analítica comum nas análises exploratórias e nos modelos preditivos.
+
+O campo `governo` recebe o valor `Transicao` para o ano de 2016, em razão do impeachment ocorrido em maio daquele ano, que impossibilita a atribuição do exercício completo a um único governo.
 
 ---
 
@@ -248,9 +235,23 @@ Essa camada será utilizada para:
 
     PROJETOFINALDSBD
     │
-    ├── ingestion          # coleta e gravação da camada bronze
-    ├── sql/duckdb         # scripts SQL para criação das views bronze
-    ├── transform          # projeto dbt das camadas prata e ouro
+    ├── ingestion                        # coleta e gravação da camada bronze
+    ├── sql/duckdb                       # scripts SQL para criação das views bronze
+    ├── transform                        # projeto dbt das camadas prata e ouro
+    │   ├── dbt_project.yml
+    │   ├── profiles.yml
+    │   └── models
+    │       ├── sources.yml              # declaração das fontes bronze
+    │       ├── prata
+    │       │   ├── stg_despesas_por_orgao.sql
+    │       │   ├── stg_despesas_por_orgao.yml
+    │       │   ├── stg_despesas_funcional_programatica.sql
+    │       │   └── stg_despesas_funcional_programatica.yml
+    │       └── ouro
+    │           ├── despesas_por_orgao.sql
+    │           ├── despesas_por_orgao.yml
+    │           ├── despesas_por_funcao.sql
+    │           └── despesas_por_funcao.yml
     └── docker-compose.yml
 
 ---
@@ -298,6 +299,8 @@ Durante a construção do projeto, foram identificados alguns desafios técnicos
 - volume e granularidade dos dados;
 - limitação histórica dos dados disponíveis, principalmente a partir de 2014;
 - necessidade de recorte do escopo para o Poder Executivo Federal, considerando disponibilidade, consistência e relevância dos dados para análise de ciclos eleitorais;
+- ausência de chave comum entre as duas dimensões de análise, resolvida com a criação do campo `pacote` na ingestão e com a adoção de tabelas independentes nas camadas prata e ouro;
+- inconsistências nos valores monetários retornados pela API, como separadores de milhar e valores negativos com espaço entre o sinal e os dígitos, tratadas na camada prata;
 - tentativa inicial de uso do ClickHouse para leitura de tabelas Iceberg locais, substituída pelo DuckDB devido a limitações na integração com `IcebergLocal`;
 - integração dos componentes via Docker e Docker Compose.
 
@@ -314,25 +317,19 @@ Atualmente, o projeto possui:
 - Docker Compose configurado;
 - leitura da camada bronze com DuckDB por meio de views;
 - dbt configurado para construção das camadas prata e ouro;
-- modelos iniciais da camada prata estruturados.
+- camada prata construída com tratamento de tipos, padronização de campos, conversão de valores monetários e enriquecimento com flags eleitorais;
+- camada ouro construída com agregações por ano e entidade, features de série temporal e contexto político-eleitoral;
+- testes de qualidade implementados com dbt para ambas as camadas.
 
 ---
 
 # Próximos Passos
 
-- desenhar a arquitetura lógica completa da camada prata;
-- definir tabelas intermediárias;
-- mapear relacionamentos entre despesas por órgão e despesas por funcional-programática;
-- definir métricas analíticas para acompanhamento dos gastos;
-- criar indicadores de variação dos gastos ao longo do tempo;
-- criar métricas por órgão, função, programa, grupo analítico e ano;
-- estruturar a camada ouro com datasets prontos para análise e modelagem;
-- realizar feature engineering;
-- criar variáveis explicativas relacionadas a períodos eleitorais e grupos de gastos;
-- desenvolver e comparar modelos preditivos;
+- realizar análise exploratória dos dados das camadas prata e ouro;
+- validar a consistência das flags eleitorais e do campo governo ao longo da série histórica;
+- desenvolver e comparar modelos preditivos com Statsmodels, Prophet e Scikit-learn;
 - avaliar os resultados dos modelos;
-- gerar previsões de gastos para 2026.
-
+- gerar previsões de gastos públicos para 2026.
 
 ---
 
@@ -340,5 +337,5 @@ Atualmente, o projeto possui:
 
 Camilla Severo Spjiorin
 
-Analista de Dados  
+Analista de Dados
 Especialização em Data Science e Big Data – UFPR

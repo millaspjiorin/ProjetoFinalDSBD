@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: stg_despesas_funcional_programatica
+    description: >
+      Despesas federais por funcional-programática tratadas e enriquecidas.
+      Inclui padronização de tipos, valores monetários convertidos para double
+      e flags de ano eleitoral.
+    columns:
+      - name: ano
+        tests:
+          - not_null
+      - name: codigo_funcao
+        tests:
+          - not_null
+      - name: nome_funcao
+        tests:
+          - not_null
+      - name: pacote
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['politicas_sociais', 'infraestrutura', 'seguranca_estado', 'administracao_governo']
+      - name: valor_empenhado
+        tests:
+          - not_null
+      - name: valor_liquidado
+        tests:
+          - not_null
+      - name: valor_pago
+        tests:
+          - not_null
+      - name: fl_ano_eleitoral
+        tests:
+          - not_null
+          - accepted_values:
+              values: [true, false]
+      - name: tipo_eleicao
+        tests:
+          - accepted_values:
+              values: ['geral', 'municipal']

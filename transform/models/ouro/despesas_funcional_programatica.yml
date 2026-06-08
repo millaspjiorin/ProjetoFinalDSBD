@@ -1,0 +1,88 @@
+version: 2
+
+models:
+  - name: despesas_funcional_programatica
+    description: >
+      Despesas federais agregadas por função orçamentária com features de série temporal
+      e contexto político-eleitoral. Fonte principal para modelagem preditiva
+      e análise do ciclo político orçamentário na perspectiva da classificação funcional.
+    columns:
+      - name: ano
+        description: "Ano de competência da despesa."
+        tests:
+          - not_null
+
+      - name: codigo_funcao
+        description: "Código da função orçamentária."
+        tests:
+          - not_null
+
+      - name: nome_funcao
+        description: "Nome da função orçamentária."
+        tests:
+          - not_null
+
+      - name: pacote
+        description: "Classificação analítica atribuída na ingestão por código de função."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['politicas_sociais', 'infraestrutura', 'seguranca_estado', 'administracao_governo']
+
+      - name: fl_ano_eleitoral
+        description: "True se o ano é eleitoral (geral ou municipal)."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [true, false]
+
+      - name: tipo_eleicao
+        description: "Tipo da eleição no ano: geral, municipal ou null."
+        tests:
+          - accepted_values:
+              values: ['geral', 'municipal']
+
+      - name: fl_ano_pre_eleitoral
+        description: "True se o ano anterior é eleitoral. Derivado via lag de fl_ano_eleitoral."
+
+      - name: fl_ano_pos_eleitoral
+        description: "True se o ano seguinte é eleitoral. Derivado via lead de fl_ano_eleitoral."
+
+      - name: governo
+        description: "Governo federal em exercício no ano. 2016 tratado como Transicao."
+        tests:
+          - accepted_values:
+              values: ['Lula 1', 'Lula 2', 'Dilma 1', 'Dilma 2', 'Transicao', 'Temer', 'Bolsonaro', 'Lula 3']
+
+      - name: valor_empenhado
+        description: "Soma do valor empenhado no ano pela função."
+        tests:
+          - not_null
+
+      - name: valor_liquidado
+        description: "Soma do valor liquidado no ano pela função."
+        tests:
+          - not_null
+
+      - name: valor_pago
+        description: "Soma do valor pago no ano pela função."
+        tests:
+          - not_null
+
+      - name: valor_pago_lag_1
+        description: "Valor pago pela mesma função no ano anterior. Null para o primeiro ano da série."
+
+      - name: valor_pago_lag_2
+        description: "Valor pago pela mesma função dois anos antes. Null para os dois primeiros anos."
+
+      - name: variacao_yoy_abs
+        description: "Variação absoluta do valor pago em relação ao ano anterior."
+
+      - name: variacao_yoy_pct
+        description: >
+          Variação percentual do valor pago em relação ao ano anterior.
+          Variável-resposta para análise do ciclo político orçamentário.
+          Null quando lag_1 é zero ou null.
+
+      - name: rolling_mean_3
+        description: "Média móvel do valor pago considerando o ano atual e os dois anteriores."
