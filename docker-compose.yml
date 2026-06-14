@@ -40,4 +40,12 @@ services:
     working_dir: /app
     environment:
       DBT_PROFILES_DIR: /app
-    command: ["dbt", "run"]
+    command: ["dbt", "build"]
+
+  notebook:
+    image: jupyter/scipy-notebook:latest
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
