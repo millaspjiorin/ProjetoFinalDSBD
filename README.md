@@ -319,17 +319,54 @@ Atualmente, o projeto possui:
 - dbt configurado para construção das camadas prata e ouro;
 - camada prata construída com tratamento de tipos, padronização de campos, conversão de valores monetários e enriquecimento com flags eleitorais;
 - camada ouro construída com agregações por ano e entidade, features de série temporal e contexto político-eleitoral;
-- testes de qualidade implementados com dbt para ambas as camadas.
+- testes de qualidade implementados com dbt para ambas as camadas;
+- análise exploratória concluída sobre as tabelas analíticas da camada ouro;
+- validação da qualidade e consistência dos dados realizada;
+- análise dos ciclos políticos e comportamento dos gastos públicos concluída;
+- avaliação do impacto de anos eleitorais, tipos de eleição e mudanças de governo realizada;
+- geração de visualizações analíticas e indicadores de apoio à tomada de decisão concluída;
+- base analítica preparada para a etapa de modelagem preditiva.
+
+---
+
+# Principais Resultados da Análise Exploratória
+
+A análise exploratória foi conduzida sobre as tabelas `ouro.despesas_por_orgao` e `ouro.despesas_funcional_programatica`, abrangendo o período de 2014 a 2026.
+
+Foram avaliadas hipóteses relacionadas à teoria dos Ciclos Políticos Orçamentários (Political Budget Cycle), considerando:
+
+- anos eleitorais versus não eleitorais;
+- eleições gerais versus eleições municipais;
+- diferenças de priorização entre governos;
+- comportamento dos agrupamentos analíticos definidos no projeto.
+
+Principais conclusões:
+
+- não foram identificadas evidências visuais de aumento generalizado dos gastos apenas por se tratar de um ano eleitoral;
+- eleições municipais apresentaram maior concentração relativa de recursos em grupos ligados ao núcleo eleitoral e políticas sociais;
+- mudanças de governo demonstraram impacto na distribuição dos recursos entre os diferentes pacotes analisados;
+- os agrupamentos criados na etapa de ingestão mostraram-se adequados para capturar diferenças de comportamento orçamentário;
+- as variáveis políticas e eleitorais incorporadas à camada ouro apresentaram potencial explicativo para utilização em modelos preditivos.
+
+As análises também validaram a consistência das features temporais criadas para modelagem, incluindo:
+
+- valor_pago_lag_1;
+- valor_pago_lag_2;
+- variacao_yoy_abs;
+- variacao_yoy_pct;
+- rolling_mean_3.
 
 ---
 
 # Próximos Passos
 
-- realizar análise exploratória dos dados das camadas prata e ouro;
-- validar a consistência das flags eleitorais e do campo governo ao longo da série histórica;
-- desenvolver e comparar modelos preditivos com Statsmodels, Prophet e Scikit-learn;
-- avaliar os resultados dos modelos;
-- gerar previsões de gastos públicos para 2026.
+- desenvolver modelos de previsão para os gastos públicos federais;
+- comparar abordagens estatísticas e de machine learning utilizando Statsmodels, Prophet e Scikit-learn;
+- avaliar métricas de desempenho dos modelos;
+- selecionar o modelo com melhor capacidade preditiva;
+- gerar previsões para o exercício de 2026;
+- analisar o impacto das variáveis eleitorais e políticas sobre os resultados dos modelos;
+- documentar os resultados finais e as conclusões do estudo.
 
 ---
 

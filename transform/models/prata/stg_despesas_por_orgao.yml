@@ -3,39 +3,64 @@ version: 2
 models:
   - name: stg_despesas_por_orgao
     description: >
-      Despesas federais por órgão tratadas e enriquecidas.
-      Inclui padronização de tipos, valores monetários convertidos para double
-      e flags de ano eleitoral.
+      Despesas federais por órgão tratadas.
+      Inclui padronização de tipos e conversão dos valores monetários para double.
+
     columns:
       - name: ano
+        description: Ano de referência da despesa.
         tests:
           - not_null
+
       - name: codigo_orgao
+        description: Código do órgão responsável pela despesa.
         tests:
           - not_null
+
+      - name: codigo_orgao_superior
+        description: Código do órgão superior ao qual o órgão está vinculado.
+
       - name: nome_orgao
+        description: Nome do órgão responsável pela despesa.
         tests:
           - not_null
+
+      - name: nome_orgao_superior
+        description: Nome do órgão superior ao qual o órgão está vinculado.
+
       - name: pacote
+        description: Pacote utilizado para classificação dos dados.
         tests:
           - not_null
           - accepted_values:
-              values: ['nucleo_eleitoral', 'infraestrutura', 'coordenacao_politica']
+              values:
+                - nucleo_eleitoral
+                - infraestrutura
+                - coordenacao_politica
+
       - name: valor_empenhado
+        description: Valor empenhado no período.
         tests:
           - not_null
+
       - name: valor_liquidado
+        description: Valor liquidado no período.
         tests:
           - not_null
+
       - name: valor_pago
+        description: Valor efetivamente pago no período.
         tests:
           - not_null
-      - name: fl_ano_eleitoral
-        tests:
-          - not_null
-          - accepted_values:
-              values: [true, false]
-      - name: tipo_eleicao
-        tests:
-          - accepted_values:
-              values: ['geral', 'municipal']
+
+      - name: __ingestion_id
+        description: Identificador da carga de ingestão.
+
+      - name: ingestion_time
+        description: Data e hora da ingestão do registro.
+
+      - name: __source
+        description: Fonte de origem dos dados.
+
+      - name: __endpoint
+        description: Endpoint utilizado na ingestão dos dados.

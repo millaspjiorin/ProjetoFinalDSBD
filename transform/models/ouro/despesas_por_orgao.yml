@@ -6,89 +6,119 @@ models:
       Despesas federais agregadas por órgão com features de série temporal
       e contexto político-eleitoral. Fonte principal para modelagem preditiva
       e análise do ciclo político orçamentário na perspectiva institucional.
+
     columns:
+      - name: sk_despesa_orgao
+        description: Chave substituta da despesa por órgão, gerada a partir de ano, código do órgão e pacote.
+        tests:
+          - not_null
+          - unique
+
       - name: ano
-        description: "Ano de competência da despesa."
+        description: Ano de competência da despesa.
         tests:
           - not_null
 
       - name: codigo_orgao
-        description: "Código do órgão executor."
+        description: Código do órgão executor.
         tests:
           - not_null
 
       - name: nome_orgao
-        description: "Nome do órgão executor."
+        description: Nome do órgão executor.
         tests:
           - not_null
 
       - name: codigo_orgao_superior
-        description: "Código do órgão superior."
+        description: Código do órgão superior.
 
       - name: nome_orgao_superior
-        description: "Nome do órgão superior."
+        description: Nome do órgão superior.
 
       - name: pacote
-        description: "Classificação analítica atribuída na ingestão por código de órgão."
+        description: Classificação analítica atribuída na ingestão por código de órgão.
         tests:
           - not_null
           - accepted_values:
-              values: ['nucleo_eleitoral', 'infraestrutura', 'coordenacao_politica']
+              values:
+                - nucleo_eleitoral
+                - infraestrutura
+                - coordenacao_politica
 
       - name: fl_ano_eleitoral
-        description: "True se o ano é eleitoral (geral ou municipal)."
+        description: True quando o ano possui eleição (geral ou municipal).
         tests:
           - not_null
           - accepted_values:
               values: [true, false]
 
       - name: tipo_eleicao
-        description: "Tipo da eleição no ano: geral, municipal ou null."
+        description: Tipo de eleição associada ao ano.
         tests:
+          - not_null
           - accepted_values:
-              values: ['geral', 'municipal']
+              values:
+                - Geral
+                - Municipal
+                - Não Eleitoral
 
       - name: fl_ano_pre_eleitoral
-        description: "True se o ano anterior é eleitoral. Derivado via lag de fl_ano_eleitoral."
+        description: True para anos imediatamente anteriores a eleições.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [true, false]
 
       - name: fl_ano_pos_eleitoral
-        description: "True se o ano seguinte é eleitoral. Derivado via lead de fl_ano_eleitoral."
+        description: True para anos imediatamente posteriores a eleições.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [true, false]
 
       - name: governo
-        description: "Governo federal em exercício no ano. 2016 tratado como Transicao."
+        description: Governo federal em exercício no respectivo ano.
         tests:
+          - not_null
           - accepted_values:
-              values: ['Lula 1', 'Lula 2', 'Dilma 1', 'Dilma 2', 'Transicao', 'Temer', 'Bolsonaro', 'Lula 3']
+              values:
+                - Lula 1
+                - Lula 2
+                - Dilma 1
+                - Dilma 2
+                - Transicao
+                - Temer
+                - Bolsonaro
+                - Lula 3
 
       - name: valor_empenhado
-        description: "Soma do valor empenhado no ano pelo órgão."
+        description: Soma do valor empenhado no ano pelo órgão.
         tests:
           - not_null
 
       - name: valor_liquidado
-        description: "Soma do valor liquidado no ano pelo órgão."
+        description: Soma do valor liquidado no ano pelo órgão.
         tests:
           - not_null
 
       - name: valor_pago
-        description: "Soma do valor pago no ano pelo órgão."
+        description: Soma do valor pago no ano pelo órgão.
         tests:
           - not_null
 
       - name: valor_pago_lag_1
-        description: "Valor pago pelo mesmo órgão no ano anterior. Null para o primeiro ano da série."
+        description: Valor pago pelo mesmo órgão e pacote no ano anterior.
 
       - name: valor_pago_lag_2
-        description: "Valor pago pelo mesmo órgão dois anos antes. Null para os dois primeiros anos."
+        description: Valor pago pelo mesmo órgão e pacote dois anos antes.
 
       - name: variacao_yoy_abs
-        description: "Variação absoluta do valor pago em relação ao ano anterior."
+        description: Variação absoluta do valor pago em relação ao ano anterior.
 
       - name: variacao_yoy_pct
         description: >
           Variação percentual do valor pago em relação ao ano anterior.
-          Variável-resposta para análise do ciclo político orçamentário.
-          Null quando lag_1 é zero ou null.
+          Nula quando não existe histórico ou quando o valor anterior é zero.
 
       - name: rolling_mean_3
-        description: "Média móvel do valor pago considerando o ano atual e os dois anteriores."
+        description: Média móvel de três períodos do valor pago para o mesmo órgão e pacote.
