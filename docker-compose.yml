@@ -43,6 +43,8 @@ services:
     command: ["dbt", "build"]
 
   notebook:
+    profiles:
+      - notebook
     image: jupyter/scipy-notebook:latest
     ports:
       - "8888:8888"
