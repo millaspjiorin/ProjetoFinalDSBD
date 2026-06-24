@@ -37,10 +37,14 @@ with base as (
             partition by codigo_orgao, pacote
             order by ano
         ) as valor_pago_lag_2
+        , lag(valor_pago, 3) over (
+            partition by codigo_orgao, pacote
+            order by ano
+        ) as valor_pago_lag_3
         , avg(valor_pago) over (
             partition by codigo_orgao, pacote
             order by ano
-            rows between 2 preceding and current row
+            rows between 3 preceding and 1 preceding
         ) as rolling_mean_3
     from base
 )
@@ -84,6 +88,7 @@ with base as (
         , valor_pago
         , valor_pago_lag_1
         , valor_pago_lag_2
+        , valor_pago_lag_3
         , valor_pago - valor_pago_lag_1 as variacao_yoy_abs
         , case
             when valor_pago_lag_1 > 0

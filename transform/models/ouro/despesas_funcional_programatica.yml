@@ -102,10 +102,19 @@ models:
           - not_null
 
       - name: valor_pago_lag_1
-        description: Valor pago pela mesma função no ano anterior.
+        description: >
+          Valor pago pela mesma função orçamentária no exercício anterior.
+          Utilizado como variável de histórico para capturar a persistência temporal dos gastos.
 
       - name: valor_pago_lag_2
-        description: Valor pago pela mesma função dois anos antes.
+        description: >
+          Valor pago pela mesma função orçamentária dois exercícios antes.
+          Utilizado para representar padrões históricos de médio prazo na execução orçamentária.
+
+      - name: valor_pago_lag_3
+        description: >
+          Valor pago pela mesma função orçamentária três exercícios antes.
+          Utilizado para capturar tendências históricas de longo prazo e apoiar modelos preditivos.
 
       - name: variacao_yoy_abs
         description: Variação absoluta do valor pago em relação ao ano anterior.
@@ -116,4 +125,7 @@ models:
           Nula quando não existe histórico ou quando o valor anterior é zero.
 
       - name: rolling_mean_3
-        description: Média móvel de três períodos do valor pago para a mesma função orçamentária.
+        description: >
+          Média móvel dos valores pagos nos três exercícios anteriores para a mesma função orçamentária.
+          Calculada exclusivamente com informações históricas, sem incluir o valor do ano corrente,
+          evitando vazamento temporal (data leakage) em análises preditivas.
